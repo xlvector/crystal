@@ -1,0 +1,24 @@
+<html>
+    <head>
+        <title>One Dimension Data Visualization</title>
+        <link href="/css/nv.d3.css" rel="stylesheet">
+        <script src="/js/d3.v3.js"></script>
+        <script src="/js/nv.d3.min.js"></script>
+        <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="/js/app.js"></script>
+        <style type="text/css">
+            .chart svg {height:200px;}
+        </style>
+    </head>
+    <body>
+        <select id="chart-selector"></select>
+        <div id="chart1" class="chart"><svg></svg></div>
+        <div id="chart2" class="chart"><svg></svg></div>
+    </body>
+
+    <script type="text/javascript">
+        app.addChartSelector("/data/adult/list.json", "#chart-selector", app);
+        app.addStackedBarChart("/data/adult/adult_workclass_stacked.json", "#chart1 svg");
+        app.addStackedBarChart("/data/adult/adult_workclass_100stacked.json", "#chart2 svg");
+    </script>
+</html>
