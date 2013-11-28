@@ -27,6 +27,7 @@ var app = {
     },
 
     addStackedBarChart: function(data_path, container) {
+        $(container).html("")
         $.ajax({
             url: data_path,
             dataType: "json",
@@ -79,18 +80,16 @@ var app = {
             url: list_url,
             dataType: "json",
             success: function(data){
-                chart_dict = {}
                 for(var i = 0; i < data.length; i++){
                     chart = data[i];
-                    $(container).append("<option value=\"" + chart.name + "\">" + chart.name + "</option>");
-                    chart_dict[chart.name] = chart.charts;
+                    $(container).append("<option value=\"" + chart + "\">" + chart + "</option>");
                 }
 
                 $(container).change(
                     function(){
-                        charts = chart_dict[$(this).val()];
-                        appvar.addStackedBarChart("/data/adult/" + charts[0], "#chart1 svg");
-                        appvar.addStackedBarChart("/data/adult/" + charts[1], "#chart2 svg");
+                        chart = $(this).val();
+                        appvar.addStackedBarChart("/single_feature?feature=" + chart, "#chart1 svg");
+                        appvar.addStackedBarChart("/single_feature?feature=" + chart, "#chart2 svg");
                     }
                 );
             }
