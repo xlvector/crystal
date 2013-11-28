@@ -83,13 +83,17 @@ var app = {
                 for(var i = 0; i < data.length; i++){
                     chart = data[i];
                     $(container).append("<option value=\"" + chart + "\">" + chart + "</option>");
+                    if(i == 0){
+                        appvar.addStackedBarChart("/single_feature?feature=" + chart, "#chart1 svg");
+                        appvar.addStackedBarChart("/single_feature?is_100percent=true&feature=" + chart, "#chart2 svg");
+                    }
                 }
 
                 $(container).change(
                     function(){
                         chart = $(this).val();
                         appvar.addStackedBarChart("/single_feature?feature=" + chart, "#chart1 svg");
-                        appvar.addStackedBarChart("/single_feature?feature=" + chart, "#chart2 svg");
+                        appvar.addStackedBarChart("/single_feature?is_100percent=true&feature=" + chart, "#chart2 svg");
                     }
                 );
             }

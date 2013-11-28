@@ -2,18 +2,36 @@
     <head>
         <title>One Dimension Data Visualization</title>
         <link href="/css/nv.d3.css" rel="stylesheet">
+        <link href="/css/bootstrap-select.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" rel="stylesheet">
         <script src="/js/d3.v3.js"></script>
         <script src="/js/nv.d3.min.js"></script>
-        <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="/js/bootstrap-select.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
         <script src="/js/app.js"></script>
         <style type="text/css">
             .chart svg {height:200px;}
+            #main {margin-top:64px;}
         </style>
     </head>
     <body>
-        <select id="chart-selector"></select>
-        <div id="chart1" class="chart"><svg></svg></div>
-        <div id="chart2" class="chart"><svg></svg></div>
+        <header class="navbar navbar-inverse navbar-fixed-top bs-docs-nav" role="banner">
+            <div class="container">
+                <div class="navbar-header">
+                    <a href="/" class="navbar-brand">Crystal</a>
+                </div>
+            </div>
+        </header>
+        <div class="container" id="main">
+            <pre style="padding:10px;">
+                <span>Please Select Feature <select id="chart-selector" class="selectpicker show-menu-arrow"></select>
+                </span>
+            </pre>
+            <br/>
+            <div id="chart1" class="chart"><svg></svg></div>
+            <div id="chart2" class="chart"><svg></svg></div>
+        </div>
     </body>
 
     <script type="text/javascript">
