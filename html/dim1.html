@@ -25,6 +25,7 @@
         </header>
         <div class="container" id="main">
             <pre style="padding:10px;">
+                <span>DataSet <select id="dataset-selector" class="selectpicker show-menu-arrow"></select></span>
                 <span>Please Select Feature <select id="chart-selector" class="selectpicker show-menu-arrow"></select>
                 </span>
             </pre>
@@ -35,6 +36,6 @@
     </body>
 
     <script type="text/javascript">
-        app.addChartSelector("/feature_list", "#chart-selector", app);
+        app.addDataSetSelector("/dataset_list", "/feature_list", "#dataset-selector", "#chart-selector", app)
     </script>
 </html>

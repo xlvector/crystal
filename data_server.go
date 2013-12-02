@@ -9,6 +9,8 @@ import(
     "strings"
     "encoding/json"
     "strconv"
+    "io/ioutil"
+    "sort"
 )
 
 type WeightLabel struct {
@@ -22,6 +24,16 @@ func (self *WeightLabelList) MaxWeight() float64 {
     ret := (*self)[0].weight
     for _, wl := range *self {
         if ret < wl.weight {
+            ret = wl.weight
+        }
+    }
+    return ret
+}
+
+func (self *WeightLabelList) MinWeight() float64 {
+    ret := (*self)[0].weight
+    for _, wl := range *self {
+        if ret > wl.weight {
             ret = wl.weight
         }
     }
@@ -70,8 +82,8 @@ func StatData(path string) *StatResult {
                 if i == 0 {
                     continue
                 } else {
-                    key := head[i][1:]
-                    if head[i][0] == '#'{
+                    key := head[i]
+                    if key[0] == '['{
                         stat.features[key] = true
                         value := tk
                         _, ok := stat.discrete_stat[key]
@@ -88,7 +100,7 @@ func StatData(path string) *StatResult {
                         } else {
                             stat.discrete_stat[key][value][label] += 1.0
                         }
-                    } else if head[i][0] == '*' {
+                    } else {
                         stat.features[key] = true
                         _, ok := stat.continuous_stat[key]
                         if !ok {
@@ -104,14 +116,96 @@ func StatData(path string) *StatResult {
     return &stat
 }
 
-var global_stat *StatResult
+func StatAllData() map[string]*StatResult {
+    ret := make(map[string]*StatResult)
+    files, _ := ioutil.ReadDir("./data/")
+    for _, f := range files {
+        if f.IsDir(){
+            stat := StatData("./data/" + f.Name() + "/data.tsv")
+            ret[f.Name()] = stat
+        }
+    }
+    return ret
+}
+
+var global_stat map[string]*StatResult
+
+func SingleContinuousFeatureStat(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    feature := r.FormValue("feature")
+    dataset := r.FormValue("dataset")
+    is_100percent := r.FormValue("is_100percent")
+    weight_labels, _ := global_stat[dataset].continuous_stat[feature]
+
+    max_weight := weight_labels.MaxWeight()
+    min_weight := weight_labels.MinWeight()
+
+    bin_stat := make(map[int]map[string]float64)
+    bin_sum := make(map[int]float64)
+    for _, wl := range weight_labels {
+        bin := int(20.0 * (wl.weight - min_weight) / (max_weight - min_weight))
+        _, ok := bin_stat[bin]
+        if !ok {
+            bin_stat[bin] = make(map[string]float64)
+            bin_sum[bin] = 0.0
+        }
+        bin_sum[bin] += 1.0
+        _, ok = bin_stat[bin][wl.label]
+        if !ok {
+            bin_stat[bin][wl.label] = 1.0
+        } else {
+            bin_stat[bin][wl.label] += 1.0
+        }
+    }
+    ret := []interface{}{}
+
+    bins := []int{}
+    for bin, _ := range bin_sum {
+        bins = append(bins, bin)
+    }
+    sort.Ints(bins)
+    for label, _ := range global_stat[dataset].labels {
+        record := make(map[string]interface{})
+        record["key"] = feature + ": " + label
+        values := []map[string]interface{}{}
+        for _, bin := range bins {
+            label_dis, _ := bin_stat[bin]
+            count, ok := label_dis[label]
+            if !ok {
+                count = 0.0
+            }
+            point := make(map[string]interface{})
+            point["x"] = min_weight + float64(bin) * (max_weight - min_weight) / 20.0
+            if is_100percent == "true" {
+                point["y"] = count / bin_sum[bin]
+            } else {
+                point["y"] = count
+            }
+            values = append(values, point)
+        }
+        record["values"] = values
+        ret = append(ret, record)
+    }
+    b, _ := json.Marshal(ret)
+    fmt.Fprint(w, string(b))
+}
+
+func SingleFeatureStat(w http.ResponseWriter, r *http.Request){
+    feature := r.FormValue("feature")
+    if feature[0] == '[' {
+        SingleDiscreteFeatureStat(w, r)
+    } else {
+        SingleContinuousFeatureStat(w, r)
+    }
+}
  
-func SingleDiscreteFeatureStat( w http.ResponseWriter,r *http.Request ){
+func SingleDiscreteFeatureStat(w http.ResponseWriter,r *http.Request){
     w.Header().Set("Content-Type", "application/json")
     ret := []interface{}{}
-    key := r.FormValue("feature")
+    feature := r.FormValue("feature")
+    dataset := r.FormValue("dataset")
     is_100percent := r.FormValue("is_100percent")
-    value_label_dis, ok := global_stat.discrete_stat[key]
+    value_label_dis, ok := global_stat[dataset].discrete_stat[feature]
     
     valuestr := []string{}
     for value, _ := range value_label_dis {
@@ -133,9 +227,9 @@ func SingleDiscreteFeatureStat( w http.ResponseWriter,r *http.Request ){
         }
     }
 
-    for label, _ := range global_stat.labels {
+    for label, _ := range global_stat[dataset].labels {
         record := make(map[string]interface{})
-        record["key"] = key + ": " + label
+        record["key"] = feature + ": " + label
         values := []map[string]interface{}{}
         for _, value := range valuestr{
             label_dis, _ := value_label_dis[value]
@@ -159,36 +253,40 @@ func SingleDiscreteFeatureStat( w http.ResponseWriter,r *http.Request ){
     fmt.Fprint(w, string(b))
 }
 
-func SingleContinuousFeatureStat(w http.ResponseWriter, r *http.Request){
-    w.Header().Set("Content-Type", "application/json")
-    ret := []interface{}{}
-    feature := r.FormValue("feature")
-    weight_labels, ok := global_stat.continuous_stat[feature]
-
-    if !ok {
-        b, _ := json.Marshal(ret)
-        fmt.Fprint(w, string(b))
-        return
-    }
-    max_weight := weight_labels.MaxWeight()
-}
-
 func FeatureList( w http.ResponseWriter,r *http.Request ){
     w.Header().Set("Content-Type", "application/json")
+    dataset := r.FormValue("dataset")
     ret := []string{}
 
-    for key, _ := range global_stat.discrete_stat {
+    for key, _ := range global_stat[dataset].discrete_stat {
+        ret = append(ret, key)
+    }
+    for key, _ := range global_stat[dataset].continuous_stat {
         ret = append(ret, key)
     }
     b, _ := json.Marshal(ret)
     fmt.Fprint(w, string(b))
 }
- 
+
+func DataSetList(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    files, _ := ioutil.ReadDir("./data/")
+    ret := []string{}
+    for _, f := range files {
+        if f.IsDir(){
+            ret = append(ret, f.Name())
+        }
+    }
+    b, _ := json.Marshal(ret)
+    fmt.Fprint(w, string(b))
+}
+
 func main(){
-    global_stat = StatData("./data/adult/adult.tsv")
+    global_stat = StatAllData()
     http.Handle("/", http.FileServer(http.Dir(".")))
-    http.HandleFunc( "/single_feature",SingleDiscreteFeatureStat)
+    http.HandleFunc( "/single_feature",SingleFeatureStat)
     http.HandleFunc("/feature_list", FeatureList)
+    http.HandleFunc("/dataset_list", DataSetList)
     s := &http.Server{  
         Addr:           ":8080",
         ReadTimeout:    30 * time.Second,

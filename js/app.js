@@ -75,25 +75,57 @@ var app = {
         });
     },
 
-    addChartSelector: function(list_url, container, appvar){
+    selected_dataset : "",
+
+    addDataSetSelector: function(dataset_url, list_url, dataset_container, feature_container, appvar){
+        $.ajax({
+            url : dataset_url, 
+            dataType: "json",
+            success: function(data) {
+                $(dataset_container).append("<option value=\"none\"></option>");
+                for(var i = 0; i < data.length; i++){
+                    dataset = data[i];
+                    $(dataset_container).append("<option value=\"" + dataset + "\">" + dataset + "</option>");
+                }
+
+                $(dataset_container).change(
+                    function(){
+                        selected_dataset = $(this).val();
+                        if(selected_dataset != "none"){
+                            appvar.selected_dataset = selected_dataset;
+                            appvar.addChartSelector(list_url, selected_dataset, feature_container, appvar);
+                        }
+                    }
+                );
+            }
+        })
+    },
+
+    addChartSelector: function(list_url, selected_dataset, container, appvar){
+        $(container).html("");
         $.ajax({
             url: list_url,
+            data: {dataset: selected_dataset},
             dataType: "json",
             success: function(data){
                 for(var i = 0; i < data.length; i++){
                     chart = data[i];
                     $(container).append("<option value=\"" + chart + "\">" + chart + "</option>");
                     if(i == 0){
-                        appvar.addStackedBarChart("/single_feature?feature=" + chart, "#chart1 svg");
-                        appvar.addStackedBarChart("/single_feature?is_100percent=true&feature=" + chart, "#chart2 svg");
+                        appvar.addStackedBarChart("/single_feature?dataset=" + selected_dataset 
+                            + "&feature=" + chart, "#chart1 svg");
+                        appvar.addStackedBarChart("/single_feature?dataset=" + selected_dataset 
+                            + "&is_100percent=true&feature=" + chart, "#chart2 svg");
                     }
                 }
 
                 $(container).change(
                     function(){
                         chart = $(this).val();
-                        appvar.addStackedBarChart("/single_feature?feature=" + chart, "#chart1 svg");
-                        appvar.addStackedBarChart("/single_feature?is_100percent=true&feature=" + chart, "#chart2 svg");
+                        appvar.addStackedBarChart("/single_feature?dataset=" + selected_dataset 
+                            + "&feature=" + chart, "#chart1 svg");
+                        appvar.addStackedBarChart("/single_feature?dataset=" + selected_dataset 
+                            + "&is_100percent=true&feature=" + chart, "#chart2 svg");
                     }
                 );
             }

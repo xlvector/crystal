@@ -1,4 +1,5 @@
 data_server
+data
 *.json
 *.log
 *.tsv
