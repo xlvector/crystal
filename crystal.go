@@ -11,6 +11,7 @@ import(
     "strconv"
     "io/ioutil"
     "sort"
+    "crystal/service"
 )
 
 type WeightLabel struct {
@@ -132,10 +133,9 @@ var global_stat map[string]*StatResult
 
 func SingleContinuousFeatureStat(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
-    feature := r.FormValue("feature")
-    dataset := r.FormValue("dataset")
+    params := service.GetParameters(w, r)
     is_100percent := r.FormValue("is_100percent")
-    weight_labels, _ := global_stat[dataset].continuous_stat[feature]
+    weight_labels, _ := global_stat[params.Dataset].continuous_stat[params.Feature]
 
     max_weight := weight_labels.MaxWeight()
     min_weight := weight_labels.MinWeight()
@@ -164,9 +164,9 @@ func SingleContinuousFeatureStat(w http.ResponseWriter, r *http.Request) {
         bins = append(bins, bin)
     }
     sort.Ints(bins)
-    for label, _ := range global_stat[dataset].labels {
+    for label, _ := range global_stat[params.Dataset].labels {
         record := make(map[string]interface{})
-        record["key"] = feature + ": " + label
+        record["key"] = params.Feature + ": " + label
         values := []map[string]interface{}{}
         for _, bin := range bins {
             label_dis, _ := bin_stat[bin]
@@ -288,7 +288,7 @@ func main(){
     http.HandleFunc("/feature_list", FeatureList)
     http.HandleFunc("/dataset_list", DataSetList)
     s := &http.Server{  
-        Addr:           ":8080",
+        Addr:           ":2013",
         ReadTimeout:    30 * time.Second,
         WriteTimeout:   30 * time.Second,
         MaxHeaderBytes: 1 << 20,
