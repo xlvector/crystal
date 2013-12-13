@@ -198,6 +198,27 @@ func SingleFeatureStat(w http.ResponseWriter, r *http.Request){
         SingleContinuousFeatureStat(w, r)
     }
 }
+
+type StringDoublePair struct {
+    Key string
+    Value float64
+}
+
+type StringDoublePairList struct {
+    data []*StringDoublePair
+}
+
+func (self *StringDoublePairList) Less(i, j int) bool{
+    return self.data[i].Value > self.data[j].Value
+}
+
+func (self *StringDoublePairList) Len() int{
+    return len(self.data)
+}
+
+func (self *StringDoublePairList) Swap(i, j int) {
+    self.data[i], self.data[j] = self.data[j], self.data[i]
+}
  
 func SingleDiscreteFeatureStat(w http.ResponseWriter,r *http.Request){
     w.Header().Set("Content-Type", "application/json")
@@ -227,11 +248,21 @@ func SingleDiscreteFeatureStat(w http.ResponseWriter,r *http.Request){
         }
     }
 
+    value_sum_array := StringDoublePairList{}
+    for value, sum := range value_sum {
+        value_sum_array.data = append(value_sum_array.data, &(StringDoublePair{Key: value, Value: sum}))
+    }
+    sort.Sort(&value_sum_array)
+
     for label, _ := range global_stat[dataset].labels {
         record := make(map[string]interface{})
         record["key"] = feature + ": " + label
         values := []map[string]interface{}{}
-        for _, value := range valuestr{
+        for i, vs := range value_sum_array.data{
+            if i > 64 {
+                break
+            }
+            value := vs.Key
             label_dis, _ := value_label_dis[value]
             count, ok := label_dis[label]
             if !ok {
