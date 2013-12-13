@@ -259,7 +259,7 @@ func SingleDiscreteFeatureStat(w http.ResponseWriter,r *http.Request){
         record["key"] = feature + ": " + label
         values := []map[string]interface{}{}
         for i, vs := range value_sum_array.data{
-            if i > 64 {
+            if i > 64 || vs.Value < 20.0 {
                 break
             }
             value := vs.Key
