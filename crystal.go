@@ -79,6 +79,12 @@ func StatData(path string) *StatResult {
                 continue
             }
             stat.labels[label] = true
+            if len(tks) != len(head) {
+                fmt.Println(head)
+                fmt.Println(tks)
+                fmt.Println(len(tks), len(head))
+                continue
+            }
             for i, tk := range tks {
                 if i == 0 {
                     continue
